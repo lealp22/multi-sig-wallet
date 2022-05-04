@@ -28,9 +28,15 @@ contract MultiSigWallet {
     /// events
     ///
     event Deposit(address indexed sender, uint amount, uint balance);
-    event SubmitTransaction(address indexed owner, uint indexed txIndex);
+    event SubmitTransaction(
+        address indexed owner,
+        uint indexed txIndex,
+        address indexed to,
+        uint value,
+        bytes data
+    );
     event ConfirmTransaction(address indexed owner, uint indexed txIndex);
-    event ExecuteTransaction(address indexed owner, address indexed to, uint indexed txIndex);
+    event ExecuteTransaction(address indexed owner, uint indexed txIndex, address indexed to);
     event RevokeTransaction(address indexed owner, uint indexed txIndex);
 
     ///
@@ -118,7 +124,7 @@ contract MultiSigWallet {
 
         isConfirmed[_txIndex][msg.sender] = true;
 
-        emit SubmitTransaction(msg.sender, _txIndex);
+        emit SubmitTransaction(msg.sender, _txIndex, _to, _value, _data);
     }
 
     /**
@@ -131,6 +137,7 @@ contract MultiSigWallet {
         notExecuted(_txIndex)
         notConfirmed(_txIndex)
     {
+        console.log("confirmTransaction: %s", _txIndex);
         Transaction storage transaction = transactions[_txIndex];
         transaction.numConfirmations += 1;
 
@@ -148,6 +155,7 @@ contract MultiSigWallet {
         txExists(_txIndex)
         notExecuted(_txIndex)
     {
+        console.log("executeTransaction: %s", _txIndex);
         Transaction storage transaction = transactions[_txIndex];
 
         require(transaction.numConfirmations >= numConfirmationsRequired, "not enough confirmations");
@@ -159,7 +167,7 @@ contract MultiSigWallet {
         );
         require(success, "tx failed");
 
-        emit ExecuteTransaction(msg.sender, transaction.to, _txIndex);
+        emit ExecuteTransaction(msg.sender, _txIndex, transaction.to);
     }
 
     /**
@@ -172,18 +180,21 @@ contract MultiSigWallet {
         notExecuted(_txIndex)
         confirmed(_txIndex)
     {
+        console.log("revokeTransaction: %s by %s", _txIndex, msg.sender);
         Transaction storage transaction = transactions[_txIndex];
         transaction.numConfirmations -= 1;
         isConfirmed[_txIndex][msg.sender] = false;
 
-        emit revokeTransaction(msg.sender, _txIndex);
+        emit RevokeTransaction(msg.sender, _txIndex);
     }
 
     function getOwners() public view returns (address[] memory) {
+        console.log("getOwners");
         return owners;
     }
 
     function getTransactionCount() public view returns (uint) {
+        console.log("getTransactionCount");
         return transactions.length;
     }
 
@@ -191,13 +202,14 @@ contract MultiSigWallet {
         public 
         view 
         returns(
-            address to;
-            uint value;
-            bytes data;
-            bool executed;
-            uint numConfirmations;
+            address to,
+            uint value,
+            bytes memory data,
+            bool executed,
+            uint numConfirmations
         ) 
     {
+        console.log("getTransaction: %s", _txIndex);
         Transaction storage transaction = transactions[_txIndex];
 
         return(
@@ -209,7 +221,9 @@ contract MultiSigWallet {
         );
     }
 
-    function isTransactionExecutable(uint _txIndex) public view return(bool) {
+    function isTransactionExecutable(uint _txIndex) public view returns (bool) {
+
+        console.log("isTransactionExecutable: %s", _txIndex);
 
         Transaction storage transaction = transactions[_txIndex];
 
