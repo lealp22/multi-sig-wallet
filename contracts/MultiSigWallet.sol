@@ -1,13 +1,12 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity ^0.8.4;
 
 import "hardhat/console.sol";
 
 contract MultiSigWallet {
-
     ///
     /// variables
-    ///    
+    ///
     address[] public owners;
     mapping(address => bool) public isOwner;
     uint public numConfirmationsRequired;
@@ -36,7 +35,11 @@ contract MultiSigWallet {
         bytes data
     );
     event ConfirmTransaction(address indexed owner, uint indexed txIndex);
-    event ExecuteTransaction(address indexed owner, uint indexed txIndex, address indexed to);
+    event ExecuteTransaction(
+        address indexed owner,
+        uint indexed txIndex,
+        address indexed to
+    );
     event RevokeTransaction(address indexed owner, uint indexed txIndex);
 
     ///
@@ -63,18 +66,25 @@ contract MultiSigWallet {
         require(isConfirmed[_txIndex][msg.sender], "tx not confirmed");
         _;
     }
-    
+
     /**
      * constructor
      */
-    constructor (address[] memory _owners, uint _numConfirmationsRequired) {
+    /**  */
+    constructor(address[] memory _owners, uint _numConfirmationsRequired) {
         console.log("Deploying MultiSigWallet");
-        console.log("Constructor: %d | Owner: %s", _numConfirmationsRequired, _owners[0]);
+        console.log(
+            "Constructor: %d | Owner: %s",
+            _numConfirmationsRequired,
+            _owners[0]
+        );
         uint len = _owners.length;
 
         require(len > 0, "owners required");
-        require(_numConfirmationsRequired > 0 && _numConfirmationsRequired <= len, 
-                "invalid number of required confirmations");
+        require(
+            _numConfirmationsRequired > 0 && _numConfirmationsRequired <= len,
+            "invalid number of required confirmations"
+        );
 
         for (uint i = 0; i < len; ++i) {
             address owner = _owners[i];
@@ -105,7 +115,7 @@ contract MultiSigWallet {
         address _to,
         uint _value,
         bytes calldata _data
-    ) public onlyOwner returns(uint _txIndex) {
+    ) public onlyOwner returns (uint _txIndex) {
         console.log("submitTransaction: %s", _to);
         require(_to != address(0), "invalid address");
         require(_value > 0 || _data.length > 0, "invalid value");
@@ -130,8 +140,8 @@ contract MultiSigWallet {
     /**
      * confirmTransaction
      */
-    function confirmTransaction(uint _txIndex) 
-        public 
+    function confirmTransaction(uint _txIndex)
+        public
         onlyOwner
         txExists(_txIndex)
         notExecuted(_txIndex)
@@ -150,7 +160,7 @@ contract MultiSigWallet {
      * executeTransaction
      */
     function executeTransaction(uint _txIndex)
-        public 
+        public
         onlyOwner
         txExists(_txIndex)
         notExecuted(_txIndex)
@@ -158,7 +168,10 @@ contract MultiSigWallet {
         console.log("executeTransaction: %s", _txIndex);
         Transaction storage transaction = transactions[_txIndex];
 
-        require(transaction.numConfirmations >= numConfirmationsRequired, "not enough confirmations");
+        require(
+            transaction.numConfirmations >= numConfirmationsRequired,
+            "not enough confirmations"
+        );
 
         transaction.executed = true;
 
@@ -174,7 +187,7 @@ contract MultiSigWallet {
      * revokeTransaction
      */
     function revokeTransaction(uint _txIndex)
-        public 
+        public
         onlyOwner
         txExists(_txIndex)
         notExecuted(_txIndex)
@@ -198,21 +211,21 @@ contract MultiSigWallet {
         return transactions.length;
     }
 
-    function getTransaction(uint _txIndex) 
-        public 
-        view 
-        returns(
+    function getTransaction(uint _txIndex)
+        public
+        view
+        returns (
             address to,
             uint value,
             bytes memory data,
             bool executed,
             uint numConfirmations
-        ) 
+        )
     {
         console.log("getTransaction: %s", _txIndex);
         Transaction storage transaction = transactions[_txIndex];
 
-        return(
+        return (
             transaction.to,
             transaction.value,
             transaction.data,
@@ -222,12 +235,11 @@ contract MultiSigWallet {
     }
 
     function isTransactionExecutable(uint _txIndex) public view returns (bool) {
-
         console.log("isTransactionExecutable: %s", _txIndex);
 
         Transaction storage transaction = transactions[_txIndex];
 
-        if (transaction.numConfirmations >= numConfirmationsRequired) 
+        if (transaction.numConfirmations >= numConfirmationsRequired)
             return true;
 
         return false;
